@@ -8,38 +8,126 @@
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.png') }}">
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 
-<body class="font-sans bg-gray-800 text-white flex flex-col items-center justify-center min-h-screen p-5 m-0">
+<body class="bg-gray-800 text-white font-sans p-5">
 
-    <div class="bg-gray-700 p-4 rounded-lg shadow-lg w-full max-w-xs text-center mb-5">
-        <div id="traffic-status" class="text-4xl font-bold mb-2"></div>
-        <div id="countdown" class="text-2xl text-yellow-500 mt-2">
-            <div id="date" class="text-lg">Loading service...</div>
-            <div
-                class="border-8 border-gray-300 border-t-8 border-t-orange-400 rounded-full w-16 h-16 mx-auto mt-6 animate-spin">
+    <div class="bg-gray-800 text-white font-sans p-5">
+        <div class="max-w-screen-lg mx-auto">
+
+            <div class="flex flex-col items-center justify-center min-h-screen">
+
+                <!-- Información de Tráfico -->
+                <div class="bg-gradient-to-br bg-gray-700 p-5 rounded-lg shadow-lg w-full max-w-sm text-center mb-5">
+                    <div id="traffic-status" class="text-4xl font-bold mb-2">Loading...</div>
+                    <div id="countdown" class="text-2xl text-yellow-500 mt-2">
+                        <div id="date" class="text-lg">Loading service...</div>
+                        <div
+                            class="border-8 border-gray-300 border-t-8 border-t-orange-400 rounded-full w-16 h-16 mx-auto mt-6 animate-spin">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de vuelos -->
+                <table class="table-auto w-full max-w-sm border-collapse rounded-lg overflow-hidden">
+                    <thead class="bg-gray-700 rounded-t-lg">
+                        <tr class="bg-gray-900 text-white">
+                            <th class="px-4 py-4 text-center text-lg">Flight Code</th>
+                            <th class="px-4 py-4 text-center text-lg">Expected Time</th>
+                            <th class="px-4 py-4 text-center text-lg">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="flights-table" class="bg-gray-700">
+                        <!-- Datos dinámicos de vuelos se insertarán aquí -->
+                    </tbody>
+                </table>
+                <div class="flex space-x-4 justify-center mt-6">
+                    <!-- Botón para ver información -->
+                    <button id="show-info" class="mt-6 text-white bg-blue-600 p-3 rounded-lg hover:bg-blue-700">
+                        Show info
+                    </button>
+                    <button id="show-info" class="mt-6 text-white bg-blue-600 p-3 rounded-lg hover:bg-blue-700">
+                        Show info
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="bg-gray-700 rounded-lg shadow-lg w-full max-w-xs mx-auto text-center">
-        <!-- Table with flight info -->
-        <table class="table-auto w-full border-collapse rounded-lg overflow-hidden">
-            <thead>
-                <tr class="bg-gray-900 text-white">
-                    <th class="px-4 py-4 text-center text-lg">Flight Code</th>
-                    <th class="px-4 py-4 text-center text-lg">Expected Time</th>
-                    <th class="px-4 py-4 text-center text-lg">Status</th>
-                </tr>
-            </thead>
-            <tbody id="flights-table">
-                <!-- Dynamic flight data will be inserted here -->
-            </tbody>
-        </table>
+    <div id="info-box"
+        class="info-box hidden absolute bottom-10 right-1/2 transform translate-x-1/2 bg-white text-gray-800 p-5 rounded-lg shadow-lg max-w-sm w-full z-10">
+        <h2 id="info-title" class="font-bold text-xl mb-3">Gibraltar Airport Information</h2>
+        <p id="info-description">
+            The main purpose of this page is to allow you to quickly check if the border will be temporarily closed due
+            to air traffic when you are heading to cross it. The system operates in real time and adapts the information
+            provided by Gibraltar Airport. With this tool, you can avoid the inconvenient waiting time caused by
+            airplane landings or take-offs by either anticipating your crossing or choosing a more convenient time.
+        </p>
+
+        <!-- Contenedor de los botones e información en una fila (flex horizontal) -->
+        <div class="flex items-center justify-between mt-4">
+            <!-- Botón Cerrar -->
+            <button id="close-info" class="text-white bg-red-600 p-2 rounded-lg hover:bg-red-700">Close</button>
+
+            <!-- Toggle de idioma -->
+            <label class="inline-flex items-center cursor-pointer pd-6">
+                <span id="lang-text" class="ml-2 mr-4 text-lg font-semibold pd-6">EN 🇬🇧</span>
+                <input id="lang-toggle" type="checkbox" value="" class="sr-only peer">
+                <div
+                    class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600">
+                </div>
+            </label>
+        </div>
     </div>
 
+    <script>
+        // Elementos del Toggle de idioma
+        const langToggle = document.getElementById('lang-toggle');
+        const langText = document.getElementById('lang-text');
 
+        langToggle.addEventListener('change', function () {
+            // Cambiar texto y contenidos según el estado del toggle
+            if (this.checked) {
+                langText.textContent = 'ES 🇪🇸'; // Español
+                document.getElementById('info-title').textContent = 'Información del Aeropuerto de Gibraltar';
+                document.getElementById('info-description').textContent = 'El propósito principal de esta página es permitirte verificar rápidamente si la frontera estará temporalmente cerrada debido al tráfico aéreo cuando estés a punto de cruzarla. El sistema opera en tiempo real y adapta la información proporcionada por el Aeropuerto de Gibraltar. Con esta herramienta, puedes evitar el inconveniente tiempo de espera causado por el aterrizaje o despegue de aviones, ya sea anticipando tu cruce o eligiendo un momento más conveniente.';
+                document.getElementById('close-info').textContent = 'Cerrar';
+            } else {
+                langText.textContent = 'EN 🇬🇧'; // Inglés
+                document.getElementById('info-title').textContent = 'Gibraltar Airport Information';
+                document.getElementById('info-description').textContent = 'The main purpose of this page is to allow you to quickly check if the border will be temporarily closed due to air traffic when you are heading to cross it. The system operates in real time and adapts the information provided by Gibraltar Airport. With this tool, you can avoid the inconvenient waiting time caused by airplane landings or take-offs by either anticipating your crossing or choosing a more convenient time.';
+                document.getElementById('close-info').textContent = 'Close';
+            }
+        });
 
+        // Mostrar la información
+        const showInfoButton = document.getElementById('show-info');
+        const infoBox = document.getElementById('info-box');
+        const closeInfoButton = document.getElementById('close-info');
+
+        showInfoButton.addEventListener('click', () => {
+            infoBox.classList.remove('hidden');
+        });
+
+        closeInfoButton.addEventListener('click', () => {
+            infoBox.classList.add('hidden');
+        });
+    </script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 

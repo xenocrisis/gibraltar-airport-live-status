@@ -10,17 +10,15 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const response = await fetch('/api/next_flight');
             const data = await response.json();
-            console.log(data);
-
             const { current_time, next_flight, time_remaining, airport_status } = data;
 
             updateCountdown(time_remaining);
-            updateAirportStatus(airport_status);  // Ahora pasamos `airport_status` directamente
+            updateAirportStatus(airport_status);
 
             dateDisplay.textContent = current_time;
 
         } catch (error) {
-            console.error("Error fetching remaining time:", error);
+            // console.error("Error fetching remaining time:", error);
         }
     }
 
@@ -36,24 +34,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateAirportStatus(airport_status) {
-        // Actualizar el texto del estado
         trafficStatus.textContent = airport_status;
 
-        // Primero eliminamos todas las clases posibles
-        trafficStatus.classList.remove('text-red-500', 'text-yellow-200', 'probable-closed', 'open', 'closed');
+        trafficStatus.classList.remove('text-red-500', 'text-yellow-200', 'text-green-300', 'text-red-400');
 
-        // Ahora, agregamos la clase correspondiente según el estado
         if (airport_status === "Probably closed") {
-            trafficStatus.classList.add('probable-closed');
+            trafficStatus.classList.add('text-red-400');
         } else if (airport_status === "Closing") {
             trafficStatus.classList.add('text-red-500');
         } else if (airport_status === "Closing soon") {
             trafficStatus.classList.add('text-yellow-200');
         } else if (airport_status === "Airport open") {
-            trafficStatus.classList.add('open');
+            trafficStatus.classList.add('text-green-300');
         }
 
-        // Aplicamos clases para "open" y "closed" según el estado
         trafficStatus.classList.toggle('closed', airport_status !== 'Airport open');
     }
 
@@ -61,7 +55,6 @@ document.addEventListener('DOMContentLoaded', function () {
         try {
             const response = await fetch('/api/todays_flights');
             const flights = await response.json();
-            console.log(flights);
 
             if (flights.error) {
                 flightsTable.innerHTML = '<p>Error retrieving today\'s flights.</p>';
@@ -70,39 +63,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
             flightsTable.innerHTML = '';
 
-            const nextFlightIndex = flights.findIndex(flight => flight.status === 'Scheduled');
-            const nextFlight = flights[nextFlightIndex];
+            const nextFlight = flights.find(flight => flight.status === 'Scheduled' || flight.status === 'Estimated');
 
-            flights.forEach((flight, index) => {
-                const row = document.createElement('tr');
-                row.classList.add('text-center');
+            flights.forEach((flight) => {
+                const flightRow = document.createElement('tr');
+                flightRow.classList.add('text-center');
 
-                let flightStatusClass = '';
-                let flightTextColorClass = 'text-white';
+                let statusTextColorClass = '';
+                let statusBackgroundClass = '';
+                let flightTextStyleClass = 'text-white';
 
                 if (flight.status === 'Arrived' || flight.status === 'Departed') {
-                    flightStatusClass = 'text-green-500';
-                    flightTextColorClass = 'line-through text-gray-200';
+                    statusTextColorClass = 'text-green-500';
+                    flightTextStyleClass = 'line-through text-gray-200';
                 }
-
+                
+                console.log(flight, nextFlight);
                 if (flight === nextFlight) {
-                    flightStatusClass = 'text-yellow-500';
+                    statusTextColorClass = 'text-yellow-500';
+                    statusBackgroundClass = 'bg-gray-600';
                 }
 
-                row.innerHTML = `
-                    <td class="px-4 py-2 ${flightTextColorClass}">${flight.flight_code}</td>
-                    <td class="px-4 py-2 ${flightTextColorClass}">${flight.expected_time}</td>
-                    <td class="px-4 py-2 ${flightStatusClass}">${flight.status}</td>
+                flightRow.innerHTML = `
+                    <td class="px-4 py-2 ${statusBackgroundClass} ${flightTextStyleClass}">${flight.flight_code}</td>
+                    <td class="px-4 py-2 ${statusBackgroundClass} ${flightTextStyleClass}">${flight.expected_time}</td>
+                    <td class="px-4 py-2 ${statusBackgroundClass} ${statusTextColorClass}">${flight.status}</td>
                 `;
-                flightsTable.appendChild(row);
+
+                flightsTable.appendChild(flightRow);
             });
+
         } catch (error) {
-            console.error("Error fetching today's flights:", error);
+            // console.error("Error fetching today's flights:", error);
             flightsTable.innerHTML = '<tr><td colspan="3">Error retrieving today\'s flights.</td></tr>';
         }
     }
 
+    // Initial calls
     getRemainingTime();
     showTodaysFlights();
-    setInterval(getRemainingTime, 60000); // Refresh every minute
+
+    // Set intervals to refresh APIs every minute
+    setInterval(getRemainingTime, 60000); // Refresh remaining time
+    setInterval(showTodaysFlights, 60000); // Refresh today's flights
 });
