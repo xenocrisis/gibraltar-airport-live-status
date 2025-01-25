@@ -4,209 +4,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airport Status</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Gibraltar Airport Status</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #1F2937;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            margin: 0;
-        }
-
-        .clock {
-            background-color: #2D3748;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            text-align: center;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 350px;
-        }
-
-        .status {
-            font-size: 4rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .time {
-            font-size: 2rem;
-            color: #FF6D00;
-            margin-top: 10px;
-        }
-
-        .date {
-            font-size: 1.2rem;
-            color: #fdfdfd;
-        }
-
-        .info-card {
-            background-color: #2D3748;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin: 10px;
-            width: 100%;
-            max-width: 350px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            text-align: center;
-        }
-
-        .status-time {
-            font-weight: bold;
-            font-size: 1rem;
-            color: #fdfdfd;
-        }
-
-        .highlight {
-            color: #F59E0B;
-        }
-
-        .open {
-            color: #34D399;
-        }
-
-        .closed {
-            color: #EF4444;
-        }
-
-        .probable-closed {
-            color: #F87171;
-            /* Red */
-        }
-
-        .cards-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            width: 100%;
-            max-width: 350px;
-        }
-
-        /* Animaciones de transición para cambios */
-        .status,
-        .time,
-        .date {
-            transition: all 0.3s ease;
-        }
-    </style>
 </head>
 
-<body>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6671986735827173"
-    crossorigin="anonymous"></script>
-    <div class="clock">
-        <div id="traffic-status" class="status">Airport Closed</div>
-        <div id="countdown" class="time">00:00:00</div>
-        <div id="date" class="date">Friday, January 25, 2025</div>
-    </div>
+<body class="font-sans bg-gray-800 text-white flex flex-col items-center justify-center min-h-screen p-5 m-0">
 
-    <div class="cards-container">
-        <div id="flight-card-1" class="info-card">
-            <p>Loading flight info...</p>
+    <div class="bg-gray-700 p-4 rounded-lg shadow-lg w-full max-w-xs text-center mb-5">
+        <div id="traffic-status" class="text-4xl font-bold mb-2"></div>
+        <div id="countdown" class="text-2xl text-yellow-500 mt-2">
+            <div id="date" class="text-lg">Loading service...</div>
+            <div
+                class="border-8 border-gray-300 border-t-8 border-t-orange-400 rounded-full w-16 h-16 mx-auto mt-6 animate-spin">
+            </div>
         </div>
     </div>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6671986735827173"
-    crossorigin="anonymous"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const flightCard1 = document.querySelector('#flight-card-1');
-            const flightCard2 = document.querySelector('#flight-card-2');
-            const countdownDisplay = document.querySelector('#countdown');
-            const trafficStatus = document.querySelector('#traffic-status');
-            const dateDisplay = document.querySelector('#date');
 
-            let probableClosedTimer = null;  // Temporizador para "Probably Closed"
+    <div class="bg-gray-700 rounded-lg shadow-lg w-full max-w-xs mx-auto text-center">
+        <!-- Table with flight info -->
+        <table class="table-auto w-full border-collapse rounded-lg overflow-hidden">
+            <thead>
+                <tr class="bg-gray-900 text-white">
+                    <th class="px-4 py-4 text-center text-lg">Flight Code</th>
+                    <th class="px-4 py-4 text-center text-lg">Expected Time</th>
+                    <th class="px-4 py-4 text-center text-lg">Status</th>
+                </tr>
+            </thead>
+            <tbody id="flights-table">
+                <!-- Dynamic flight data will be inserted here -->
+            </tbody>
+        </table>
+    </div>
 
-            // Función para obtener la información de la API /api/tiempo_restante
-            async function obtenerTiempoRestante() {
-                try {
-                    const response = await fetch('/api/tiempo_restante');
-                    const data = await response.json();
 
-                    if (data.error) {
-                        flightCard1.innerHTML = '<p>Error al obtener el tiempo restante.</p>';
-                        return;
-                    }
 
-                    // Actualizar la cuenta atrás, tráfico, y vuelo
-                    const { hora_actual, tiempo_restante, proximo_vuelo } = data;
-
-                    // Mostrar tiempo restante en el formato adecuado
-                    countdownDisplay.textContent = tiempo_restante;
-
-                    // Verificar si la cuenta atrás está en cero (o cerca)
-                    const tiempoRestanteEnMinutos = parseInt(tiempo_restante.split(':')[0]);
-                    if (tiempoRestanteEnMinutos <= 0) {
-                        trafficStatus.textContent = "Probably Closed";
-                        trafficStatus.classList.add('probable-closed');
-                        // Activar temporizador de "probably closed" por 6 minutos
-                        if (!probableClosedTimer) {
-                            probableClosedTimer = setTimeout(() => {
-                                trafficStatus.textContent = "Airport Open";
-                                trafficStatus.classList.remove('probable-closed');
-                                probableClosedTimer = null; // Resetear temporizador
-                                obtenerTiempoRestante(); // Volver a actualizar con el siguiente vuelo
-                            }, 6 * 60 * 1000); // 6 minutos
-                        }
-                    } else {
-                        trafficStatus.textContent = proximo_vuelo ? '✅ Airport Open' : '🎈 Airport Closed';
-                        trafficStatus.classList.toggle('open', proximo_vuelo);
-                        trafficStatus.classList.toggle('closed', !proximo_vuelo);
-                    }
-
-                    // Mostrar el primer vuelo en la tarjeta
-                    mostrarVuelo(proximo_vuelo, flightCard1);
-
-                    // Actualizar la hora actual
-                    dateDisplay.textContent = hora_actual;
-
-                } catch (error) {
-                    console.error("Error al obtener el tiempo restante:", error);
-                    flightCard1.innerHTML = '<p>Error al obtener el tiempo restante.</p>';
-                    flightCard2.innerHTML = '<p>Error al obtener los vuelos.</p>';
-                }
-            }
-
-            // Función para mostrar la información de un vuelo en una tarjeta
-            function mostrarVuelo(flight, card) {
-                if (!flight) return;
-                const flightStatusClass = flight.status.toLowerCase().replace(' ', '-');
-
-                card.innerHTML = `
-                    <h1 class="text-2xl font-semibold text-gray-200 mb-4">Next Flight</h1>
-                    <h3 class="text-xl font-bold text-white mb-2">${flight.flight}</h3>
-                    <p class="text-lg text-gray-400">Dest / From: <span class="highlight text-yellow-500">${flight.from}</span></p>
-                    <div class="status-container mb-4 flex items-center justify-between">
-                        <p class="status-time ${flightStatusClass} text-lg font-semibold">
-                            ${flight.status}
-                        </p>
-                        ${flight.status === 'Scheduled' ? `<span class="text-green-500">✈️</span>` :
-                        flight.status === 'Cancelled' ? `<span class="text-red-500">❌</span>` :
-                            `<span class="text-yellow-500">⏳</span>`}
-                    </div>
-                    <p class="text-sm text-gray-300"><span class="highlight">${flight.date} ${flight.sched}</span></p>
-                `;
-            }
-
-            // Obtener el tiempo restante y vuelos al cargar la página
-            obtenerTiempoRestante();
-
-            // Refrescar la información cada minuto (60,000 milisegundos)
-            setInterval(obtenerTiempoRestante, 60000);
-        });
-    </script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6671986735827173"
-        crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 
 </html>
