@@ -79,7 +79,8 @@
         }
 
         .probable-closed {
-            color: #F87171; /* Red */
+            color: #F87171;
+            /* Red */
         }
 
         .cards-container {
@@ -187,8 +188,8 @@
                             ${flight.status}
                         </p>
                         ${flight.status === 'Scheduled' ? `<span class="text-green-500">✈️</span>` :
-                          flight.status === 'Cancelled' ? `<span class="text-red-500">❌</span>` :
-                          `<span class="text-yellow-500">⏳</span>`}
+                        flight.status === 'Cancelled' ? `<span class="text-red-500">❌</span>` :
+                            `<span class="text-yellow-500">⏳</span>`}
                     </div>
                     <p class="text-sm text-gray-300"><span class="highlight">${flight.date} ${flight.sched}</span></p>
                 `;
@@ -201,6 +202,8 @@
             setInterval(obtenerTiempoRestante, 60000);
         });
     </script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6671986735827173"
+        crossorigin="anonymous"></script>
 </body>
 
 </html>
