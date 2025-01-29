@@ -1,3 +1,5 @@
+import { translations } from './translation.js';
+
 document.addEventListener('DOMContentLoaded', function () {
 
     // Textos estáticos (no dependen de la api)
@@ -5,77 +7,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const trafficStatus = document.querySelector('#traffic-status');
     const dateDisplay = document.querySelector('#date');
     const flightsTable = document.querySelector('#flights-table');
-    const alertMeWhen = document.querySelector('#alert-me-when');
     const languageSelector = document.getElementById('language-selector');
 
-    // Traducciones por idioma
-    const translations = {
-        en: {
-            countdown: "Left for closing",
-            flightCode: "Flight Code",
-            expectedTime: "Expected Time",
-            flightStatus: "Status",
-            loadingService: "Loading service",
-            description: "The main purpose of this page is to allow you to quickly check if the border will be temporarily closed due to air traffic when you are heading to cross it. The system operates in real time and adapts the information provided by Gibraltar Airport. With this tool, you can avoid the inconvenient waiting time caused by airplane landings or take-offs by either anticipating your crossing or choosing a more convenient time.",
-            airportStatus: ["Airport open", "Closing soon", "Closing", "Probably closed"],
-            flightsFor: "Flights schedule for",
-            noticeMeWhen: "Alert me when",
-            notificationMessage: ["Gibraltar Airport 🇬🇮 closing in", "Hurry up crossing the border! The airport is closing soon."],
-        },
-        es: {
-            countdown: "Para el cierre",
-            flightCode: "Código de Vuelo",
-            expectedTime: "Hora Estimada",
-            flightStatus: "Estado",
-            loadingService: "Cargando servicio",
-            description: "El propósito principal de esta página es permitirte comprobar rápidamente si la frontera se cerrará temporalmente debido al tráfico aéreo cuando te diriges a cruzarla. El sistema opera en tiempo real y adapta la información proporcionada por el Aeropuerto de Gibraltar. Con esta herramienta, puedes evitar el inconveniente tiempo de espera causado por los aterrizajes o despegues de aviones anticipando tu cruce o eligiendo un momento más conveniente.",
-            airportStatus: ["Aeropuerto abierto", "Cerrando pronto", "Cerrando", "Probablemente cerrado"],
-            flightsFor: "Horario de vuelos para",
-            noticeMeWhen: "Avísame cuando",
-            notificationMessage: ["Aeropuerto de Gibraltar 🇬🇮 cerrando en", "¡Apúrate a cruzar la frontera! El aeropuerto está cerrando pronto."],
-        },
-        pt: {
-            countdown: "Para o fechamento",
-            flightCode: "Código do Voo",
-            expectedTime: "Hora Esperada",
-            flightStatus: "Status",
-            loadingService: "Carregando serviço",
-            description: "O principal objetivo desta página é permitir que você verifique rapidamente se a fronteira será temporariamente fechada devido ao tráfego aéreo quando você estiver indo cruzá-la. O sistema opera em tempo real e adapta as informações fornecidas pelo Aeroporto de Gibraltar. Com esta ferramenta, você pode evitar o inconveniente tempo de espera causado pelos pousos ou decolagens de aviões, antecipando sua travessia ou escolhendo um momento mais conveniente.",
-            airportStatus: ["Aeroporto aberto", "Fechando em breve", "Fechando", "Provavelmente fechado"],
-            flightsFor: "Horário de voos para",
-            noticeMeWhen: "Avise-me quando",
-            notificationMessage: ["Aeroporto de Gibraltar 🇬🇮 fechando em", "Apresse-se para cruzar a fronteira! O aeroporto está fechando em breve."],
-        },
-        cn: {
-            countdown: "剩余时间关闭",
-            flightCode: "航班代码",
-            expectedTime: "预计时间",
-            flightStatus: "状态",
-            loadingService: "加载服务",
-            description: "此页面的主要目的是允许您快速检查边境是否由于航空交通暂时关闭，当您准备过境时。系统实时运行，并根据直布罗陀机场提供的信息进行调整。通过这个工具，您可以避免因飞机着陆或起飞而导致的不便等待时间，您可以提前安排过境或选择更方便的时间。",
-            airportStatus: ["机场开放", "即将关闭", "关闭", "可能关闭"],
-            flightsFor: "航班时刻表",
-            noticeMeWhen: "当...时提醒我",
-            notificationMessage: ["直布罗陀机场 🇬🇮 剩余时间关闭", "快点过境！机场即将关闭。"],
-        },
-        ar: {
-            countdown: "المتبقي لإغلاق",
-            flightCode: "رمز الرحلة",
-            expectedTime: "الوقت المتوقع",
-            flightStatus: "الحالة",
-            loadingService: "جارٍ تحميل الخدمة",
-            description: "الهدف الرئيسي من هذه الصفحة هو السماح لك بالتحقق بسرعة مما إذا كانت الحدود ستغلق مؤقتًا بسبب حركة الطيران عندما تتجه لعبور الحدود. يعمل النظام في الوقت الفعلي ويكيف المعلومات المقدمة من مطار جبل طارق. مع هذه الأداة، يمكنك تجنب وقت الانتظار المزعج الذي تسببه هبوط الطائرات أو إقلاعها عن طريق التنبؤ بعبورك أو اختيار وقت أكثر ملاءمة.",
-            airportStatus: ["المطار مفتوح", "يغلق قريبًا", "يغلق", "مغلق على الأرجح"],
-            flightsFor: "جدول الرحلات لـ",
-            noticeMeWhen: "أعلمني عندما",
-            notificationMessage: ["مطار جبل طارق 🇬🇮 يغلق في", "أسرع في عبور الحدود! المطار يغلق قريبًا."],
-        }
-    };
-
+    // Datos de la API
+    let currentApiData = {};
 
     // Obtener el idioma del almacenamiento local o usar 'en' como predeterminado
-    let currentLang = localStorage.getItem('language') || 'en';
-    let currentApiData = {};
+    let currentLang = localStorage.getItem('language');
+
+    if (currentLang === null) {
+        currentLang = 'en';
+        localStorage.setItem('language', currentLang);
+    }
+
+    languageSelector.addEventListener('change', function () {
+        const selectedLang = languageSelector.value;
+        localStorage.setItem('language', selectedLang); // Guardar el idioma seleccionado
+        applyTranslations(selectedLang); // Aplicar traducciones inmediatamente
+    });
 
     // Función para actualizar los textos estáticos con la traducción correcta
     function updateTextContent(trans) {
@@ -86,7 +35,6 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelector('#description').textContent = trans.description;
         document.querySelector('#current-date-label').textContent = trans.flightsFor;
         document.querySelector('#alert-me-when').textContent = trans.noticeMeWhen;
-
     }
 
     // Función para cambiar el idioma
@@ -184,17 +132,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Mandar notificación si es necesario
             let savedTime = localStorage.getItem('notificationTime');
-            let alertTrigger = 0;
 
-            try {
-                alertTrigger = time_remaining.split(' ')[1].replace('m', '');
-            } catch (error) {
-                alertTrigger = time_remaining.replace('m', '');
+            // Convertir time_remaining a minutos totales
+            let totalMinutes = 0;
+
+            // Buscar horas y minutos en time_remaining
+            const timeMatch = time_remaining.match(/(?:(\d+)h)?\s*(\d+)m/); // Opcionalmente horas, seguido de minutos
+            if (timeMatch) {
+                const hours = parseInt(timeMatch[1] || 0, 10); // Si no hay horas, usar 0
+                const minutes = parseInt(timeMatch[2], 10);   // Los minutos siempre deben estar
+                totalMinutes = (hours * 60) + minutes;       // Convertir horas a minutos y sumar
             }
 
-            if (alertTrigger == savedTime) {
-                sendNotification(`${translations[currentLang]?.notificationMessage[0]} ${time_remaining}`, translations[currentLang]?.notificationMessage[1]);
+            // Recuperar el tiempo de alerta guardado en minutos
+            const savedAlertTime = parseInt(savedTime, 10);
+
+            // Comparar el tiempo restante con el tiempo de alerta y enviar notificación si coincide
+            if (totalMinutes === savedAlertTime) {
+                sendNotification(
+                    `${translations[currentLang]?.notificationMessage[0]} ${time_remaining}`,
+                    translations[currentLang]?.notificationMessage[1]
+                );
             }
+
 
             // Mostrar vuelos correspondientes a la fecha del próximo vuelo
             showTodaysFlights(data.next_flight.datetime.split(' ')[0]);

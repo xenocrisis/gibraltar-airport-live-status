@@ -128,7 +128,7 @@ def handle_flight_request(processor, day_filter=None):
     # Get current time from request parameter, if provided
     current_date_str = request.args.get('date', None)  # Allow the user to specify date
     current_time_str = request.args.get('time', None)  # Allow the user to specify time
-    
+
     if current_date_str and current_time_str:
         try:
             current_datetime_str = f"{current_date_str} {current_time_str}"
