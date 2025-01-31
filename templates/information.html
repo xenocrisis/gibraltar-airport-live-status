@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviso Legal y Políticas</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.png') }}">
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+    <style>
+        /* Estilo similar al anterior */
+        body {
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            background-color: var(--primary-bg);
+            color: var(--text-light);
+        }
+
+        :root {
+            --primary-bg: #1c1c1c;
+            --secondary-bg: #2f2f2f;
+            --highlight: #ddb83d;
+            --accent: #b08d57;
+            --text-light: #e5e5e5;
+            --text-dark: #a8a8a8;
+            --border-color: #4e4e4e;
+            --hover-color: #9e9e9e;
+        }
+
+        .container {
+            background-color: var(--secondary-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+
+        .sub-title {
+            font-size: 1.5rem;
+            color: var(--highlight);
+            font-weight: 600;
+        }
+
+        .content {
+            color: var(--text-dark);
+            font-size: 1.125rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .link {
+            color: var(--highlight);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .link:hover {
+            color: var(--accent);
+        }
+
+        #info-box {
+            display: none;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="container max-w-screen-lg mx-auto">
+        <!-- Título Principal -->
+        <h1 class="title text-center mb-8">Aviso Legal y Políticas</h1>
+
+        <!-- Sección Aviso Legal -->
+        <div id="aviso-legal">
+            <h2 class="sub-title">Aviso Legal</h2>
+            <p class="content">
+                El contenido de este sitio web tiene como objetivo proporcionar información sobre el estado del paso andando
+                en el Aeropuerto de Gibraltar. No nos responsabilizamos de cualquier error o inexactitud en la información
+                proporcionada. El uso de esta página es bajo el propio riesgo del usuario. Para más detalles, consulte nuestra
+                <a href="#politica-privacidad" class="link">política de privacidad</a>.
+            </p>
+        </div>
+
+        <!-- Sección FAQ -->
+        <div id="faq">
+            <h2 class="sub-title">Preguntas Frecuentes (FAQ)</h2>
+            <div class="content">
+                <p><strong>¿Cómo puedo saber si el aeropuerto está cerrado?</strong></p>
+                <p>Puede consultar el estado del tráfico aéreo en tiempo real en esta página. Si hay algún cierre temporal, se
+                    le notificará.</p>
+
+                <p><strong>¿Qué debo hacer si necesito información urgente?</strong></p>
+                <p>Le recomendamos revisar esta página con regularidad o activar las notificaciones para recibir alertas en
+                    tiempo real.</p>
+            </div>
+        </div>
+
+        <!-- Sección Política de Privacidad -->
+        <div id="politica-privacidad">
+            <h2 class="sub-title">Política de Privacidad</h2>
+            <p class="content">
+                La información recopilada a través de este sitio web se utiliza únicamente para fines relacionados con el servicio y su seguridad. No compartimos datos personales con
+                terceros sin el consentimiento del usuario. Para más detalles, consulte nuestro <a href="#aviso-legal" class="link">aviso legal</a>.
+            </p>
+        </div>
+
+        <!-- Sección de Contacto -->
+        <div id="contacto">
+            <h2 class="sub-title">Contacto</h2>
+            <p class="content">
+                Si tiene alguna pregunta adicional, no dude en ponerse en contacto con nosotros a través de nuestro
+                correo electrónico a <a href="mailto:abykko12@gmail.com" class="link">abykko12@gmail.com</a>.
+            </p>
+        </div>
+
+        <button>
+            <a href="{{ url_for('index') }}" class="text-white bg-blue-600 p-2 rounded-lg hover:bg-blue-700">Volver a la Aplicación</a>
+        </button>
+
+    </div>
+
+    <!-- Cuadro de Información -->
+    <div id="info-box" class="info-box absolute bottom-10 right-1/2 transform translate-x-1/2 bg-white text-gray-800 p-5 rounded-lg shadow-lg max-w-sm w-full z-10">
+        <h2 id="info-title" class="font-bold text-xl mb-3">Información Adicional</h2>
+        <p id="description" class="text-lg">
+            Esta es una página destinada a proporcionar información sobre el estado del tráfico aéreo en Gibraltar. Las
+            políticas descritas en esta página pueden cambiar sin previo aviso. Recomendamos revisar regularmente para
+            obtener la información más actualizada.
+        </p>
+
+        <div class="flex items-center justify-between mt-4">
+            <button id="close-info" class="text-white bg-red-600 p-2 rounded-lg hover:bg-red-700" aria-label="Cerrar cuadro de información">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Mostrar cuadro de información
+        const moreInfoButton = document.getElementById('more-info-button');
+        const infoBox = document.getElementById('info-box');
+        const closeInfoButton = document.getElementById('close-info');
+
+        moreInfoButton.addEventListener('click', () => {
+            infoBox.style.display = 'block'; // Mostrar cuadro de información
+        });
+
+        closeInfoButton.addEventListener('click', () => {
+            infoBox.style.display = 'none'; // Cerrar cuadro de información
+        });
+    </script>
+
+</body>
+
+</html>

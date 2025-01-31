@@ -1,34 +1,92 @@
-import { translations } from './translation.js';
+document.addEventListener('DOMContentLoaded', () => {
+    const elements = {
+        countdownDisplay: document.querySelector('#countdown'),
+        trafficStatus: document.querySelector('#traffic-status'),
+        dateDisplay: document.querySelector('#date'),
+        currentDay: document.querySelector('#current-date'),
+        flightsTable: document.querySelector('#flights-table'),
+        languageSelector: document.getElementById('language-selector'),
+        notificationPreferences: document.getElementById('notification-preferences'),
+        bellOn: document.getElementById('bell-on'),
+        bellOff: document.getElementById('bell-off')
+    };
 
-document.addEventListener('DOMContentLoaded', function () {
+    let currentApiData;
+    let currentLang = localStorage.getItem('language') || 'en';
+    localStorage.setItem('language', currentLang);
+    elements.languageSelector.value = currentLang;
 
-    // Textos estáticos (no dependen de la api)
-    const countdownDisplay = document.querySelector('#countdown');
-    const trafficStatus = document.querySelector('#traffic-status');
-    const dateDisplay = document.querySelector('#date');
-    const flightsTable = document.querySelector('#flights-table');
-    const languageSelector = document.getElementById('language-selector');
+    initializeEventListeners();
+    updateData();
+    applyTranslations(currentLang);
+    updateBellState();
+    setInterval(updateData, 58000);
 
-    // Datos de la API
-    let currentApiData = {};
+    function initializeEventListeners() {
+        elements.languageSelector.addEventListener('change', () => {
+            const selectedLang = elements.languageSelector.value;
+            localStorage.setItem('language', selectedLang);
+            location.reload();
+        });
 
-    // Obtener el idioma del almacenamiento local o usar 'en' como predeterminado
-    let currentLang = localStorage.getItem('language');
+        elements.notificationPreferences.addEventListener('change', () => {
+            localStorage.setItem('notificationTime', elements.notificationPreferences.value);
+            if (Notification.permission !== "denied") {
+                requestNotificationPermission();
+            }
+        });
 
-    if (currentLang === null) {
-        currentLang = 'en';
-        localStorage.setItem('language', currentLang);
+        // Alternar estado de las notificaciones al hacer clic en las campanas
+        elements.bellOn.addEventListener('click', () => {
+            requestNotificationPermission();
+        });
+
+        elements.bellOff.addEventListener('click', () => {
+            requestNotificationPermission();
+        });
+
+        window.addEventListener('load', () => {
+            const savedTime = localStorage.getItem('notificationTime');
+            if (savedTime) elements.notificationPreferences.value = savedTime;
+            updateBellState();
+        });
     }
 
-    languageSelector.addEventListener('change', function () {
-        const selectedLang = languageSelector.value;
-        localStorage.setItem('language', selectedLang); // Guardar el idioma seleccionado
-        applyTranslations(selectedLang); // Aplicar traducciones inmediatamente
-    });
+    // Cambiar el estado de las campanas según las notificaciones
+    function setNotificationState(isActive) {
+        if (isActive) {
+            // Activar la campana
+            elements.bellOn.classList.add('text-green-300');
+            elements.bellOn.classList.remove('text-dark');
+            elements.bellOff.classList.remove('text-highlight');
+            elements.bellOff.classList.add('text-dark');
+        } else {
+            // Desactivar la campana
+            elements.bellOff.classList.add('text-highlight');
+            elements.bellOff.classList.remove('text-dark');
+            elements.bellOn.classList.remove('text-highlight');
+            elements.bellOn.classList.add('text-dark');
+        }
+    }
 
-    // Función para actualizar los textos estáticos con la traducción correcta
+    // Verificar el estado de las notificaciones y actualizar las campanas
+    function updateBellState() {
+        if (Notification.permission === "granted") {
+            setNotificationState(true);
+        } else if (Notification.permission === "denied") {
+            setNotificationState(false);
+        } else {
+            setNotificationState(false);
+        }
+    }
+
+    function applyTranslations(lang) {
+        const trans = translations[lang] || translations.en;
+        updateTextContent(trans);
+    }
+
     function updateTextContent(trans) {
-        countdownDisplay.textContent = trans.countdown;
+        elements.countdownDisplay.textContent = trans.countdown;
         document.querySelector('#flight-code-header').textContent = trans.flightCode;
         document.querySelector('#expected-time-header').textContent = trans.expectedTime;
         document.querySelector('#flight-status-header').textContent = trans.flightStatus;
@@ -37,263 +95,111 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelector('#alert-me-when').textContent = trans.noticeMeWhen;
     }
 
-    // Función para cambiar el idioma
-    function applyTranslations(lang) {
-        const trans = translations[lang] || translations.en;
-        updateTextContent(trans);
-
-        if (currentApiData.airport_status) {
-            const statusIndex = trans.airportStatus.indexOf(currentApiData.airport_status);
-            if (statusIndex !== -1) {
-                trafficStatus.textContent = trans.airportStatus[statusIndex];
-            }
-        }
-    }
-
-    // Cambiar el idioma al seleccionar una opción en el selector
-    languageSelector.addEventListener('change', function () {
-        const selectedLang = languageSelector.value;
-        localStorage.setItem('language', selectedLang);  // Guardar el idioma seleccionado
-        location.reload();  // Recargar la página para aplicar la nueva configuración de idioma
-    });
-
-    // Script para alternar entre las campanas activas y desactivadas
-    const bellOn = document.getElementById("bell-on");
-    const bellOff = document.getElementById("bell-off");
-
-    bellOn.addEventListener("click", () => {
-        requestNotificationPermission();
-    });
-
-    bellOff.addEventListener("click", () => {
-        requestNotificationPermission();
-    });
-
-    // Si el usuario ya tiene activadas las notificaciones, mostramos la campana activa
-    // Esto es un ejemplo de cómo podrías manejar el estado de las notificaciones
-
-    if (Notification.permission === "granted") {
-        bellOn.classList.remove("text-gray-400");
-        bellOn.classList.add("text-green-400");
-
-        bellOff.classList.remove("text-red-400");
-        bellOff.classList.add("text-gray-400");
-    } else if (Notification.permission !== "denied") {
-        bellOff.classList.remove("text-gray-400");
-        bellOff.classList.add("text-red-400");
-
-        bellOn.classList.remove("text-green-400");
-        bellOn.classList.add("text-gray-400");
-    }
-
-    const notificationPreferences = document.getElementById('notification-preferences');
-
-    // Guardar el tiempo seleccionado en el almacenamiento local al iniciar la página
-    localStorage.setItem('notificationTime', notificationPreferences.value);
-
-    notificationPreferences.addEventListener('change', function () {
-
-        if (Notification.permission !== "denied") {
-            requestNotificationPermission();
-        }
-
-        const selectedTime = notificationPreferences.value;  // Tiempo seleccionado en minutos
-        console.log("Selected time:", selectedTime);
-
-        // Guardar el tiempo seleccionado en el almacenamiento local
-        localStorage.setItem('notificationTime', selectedTime);
-    });
-
-    // Al cargar la página, si hay un valor guardado en localStorage, establecerlo en el elemento
-    window.addEventListener('load', function () {
-        const savedTime = localStorage.getItem('notificationTime');
-        if (savedTime) {
-            notificationPreferences.value = savedTime;
-            console.log("Loaded saved time:", savedTime);
-        }
-    });
-
-
-
-    // Actualizar los datos
     async function updateData() {
         try {
-            const response = await fetch('/api/next_flight');
+            const response = await fetch('/api/flights');
             const data = await response.json();
-            const { current_time, next_flight, time_remaining, airport_status } = data;
-
             currentApiData = data;
 
-            updateCountdown(time_remaining);
-            updateAirportStatus(airport_status);
-            todaysSchedulePreviousMessageCurrentDay(next_flight.date);
+            let nextFlight = currentApiData[data.length - 1].next_flight;
 
-            dateDisplay.textContent = current_time;
-
-            // Mandar notificación si es necesario
-            let savedTime = localStorage.getItem('notificationTime');
-
-            // Convertir time_remaining a minutos totales
-            let totalMinutes = 0;
-
-            // Buscar horas y minutos en time_remaining
-            const timeMatch = time_remaining.match(/(?:(\d+)h)?\s*(\d+)m/); // Opcionalmente horas, seguido de minutos
-            if (timeMatch) {
-                const hours = parseInt(timeMatch[1] || 0, 10); // Si no hay horas, usar 0
-                const minutes = parseInt(timeMatch[2], 10);   // Los minutos siempre deben estar
-                totalMinutes = (hours * 60) + minutes;       // Convertir horas a minutos y sumar
-            }
-
-            // Recuperar el tiempo de alerta guardado en minutos
-            const savedAlertTime = parseInt(savedTime, 10);
-
-            // Comparar el tiempo restante con el tiempo de alerta y enviar notificación si coincide
-            if (totalMinutes === savedAlertTime) {
-                sendNotification(
-                    `${translations[currentLang]?.notificationMessage[0]} ${time_remaining}`,
-                    translations[currentLang]?.notificationMessage[1]
-                );
-            }
-
-
-            // Mostrar vuelos correspondientes a la fecha del próximo vuelo
-            showTodaysFlights(data.next_flight.datetime.split(' ')[0]);
-
+            updateCountdown(nextFlight.time_remaining);
+            updateTrafficStatus(nextFlight.airport_status);
+            showTodaysFlights(nextFlight.next_flight.datetime, nextFlight.next_flight.flight);
+            checkNotificationTrigger(nextFlight.time_remaining);
         } catch (error) {
             console.error("Error fetching remaining time:", error);
         }
     }
 
-    function todaysSchedulePreviousMessageCurrentDay(next_flight_date) {
-        const date = new Date(next_flight_date);
-
-        // Asegurarse de que el idioma es correcto, y usar 'zh-CN' si es chino simplificado
-        const lang = currentLang === 'cn' ? 'zh-CN' : currentLang;
-
-        // Opciones para obtener el nombre del día de la semana, el día, el mes y el año
-        const options = {
-            weekday: 'long',  // Día de la semana completo (Monday, Lunes, Segunda-feira, etc.)
-            day: 'numeric',   // Día numérico (27)
-            month: 'long',    // Mes completo (January, Enero, Janeiro, etc.)
-            year: 'numeric'   // Año completo (2025)
-        };
-
-        // Usamos Intl.DateTimeFormat para formatear la fecha según el idioma actual
-        const formattedDate = new Intl.DateTimeFormat(lang, options).format(date);
-
-        // Establecemos el texto traducido para la fecha
-        document.getElementById('current-date').innerHTML = formattedDate;
+    function updateCountdown(remainingTime) {
+        let remainingMinutes = parseInt(remainingTime.split(':')[0]);
+        elements.countdownDisplay.textContent = remainingMinutes < 0
+            ? "Waiting for the airport to open again"
+            : `${remainingTime} ${translations[currentLang]?.countdown || translations.en.countdown}`;
     }
 
-    function updateCountdown(remaining_time) {
-        let remainingMinutes = parseInt(remaining_time.split(':')[0]);
+    function updateTrafficStatus(status) {
+        const trans = translations[currentLang]?.airportStatus || translations.en.airportStatus;
+        const statusMap = { open: trans[0], closing_soon: trans[1], closing: trans[2], closed: trans[3] };
+        elements.trafficStatus.textContent = statusMap[status] || trans[0];
 
-        if (remainingMinutes < 0) {
-            countdownDisplay.textContent = "Waiting for the airport to open again";
-        } else {
-            countdownDisplay.textContent = `${remaining_time} ${translations[currentLang]?.countdown || translations.en.countdown}`;
+        elements.trafficStatus.classList.remove('text-red-500', 'text-yellow-200', 'text-green-300', 'text-red-400');
+
+        switch (status) {
+            case "open":
+                elements.trafficStatus.classList.add('text-green-300');
+                break;
+            case "closing_soon":
+                elements.trafficStatus.classList.add('text-yellow-200');
+                break;
+            case "closing":
+                elements.trafficStatus.classList.add('text-red-500');
+                break;
+            case "closed":
+                elements.trafficStatus.classList.add('text-red-400');
+                break;
+            default:
+                elements.trafficStatus.classList.add('text-gray-500');
         }
     }
 
-    function updateAirportStatus(airport_status) {
-        const statusTranslations = translations[currentLang]?.airportStatus || translations.en.airportStatus;
-
-        const statusMap = {
-            "open": statusTranslations[0],
-            "slosing_soon": statusTranslations[1],
-            "closing": statusTranslations[2],
-            "closed": statusTranslations[3]
-        };
-
-        trafficStatus.textContent = statusMap[airport_status] || statusTranslations[0];
-
-        trafficStatus.classList.remove('text-red-500', 'text-yellow-200', 'text-green-300', 'text-red-400');
-
-        if (airport_status === "closed") {
-            trafficStatus.classList.add('text-red-400');
-        } else if (airport_status === "closing") {
-            trafficStatus.classList.add('text-red-500');
-        } else if (airport_status === "closing_soon") {
-            trafficStatus.classList.add('text-yellow-200');
-        } else if (airport_status === "open") {
-            trafficStatus.classList.add('text-green-300');
-        }
-
-        trafficStatus.classList.toggle('closed', airport_status !== 'Airport open');
+    function checkNotificationTrigger(timeRemaining) {
+        const savedTime = parseInt(localStorage.getItem('notificationTime'), 10);
+        const totalMinutes = parseTimeToMinutes(timeRemaining);
+        if (totalMinutes === savedTime) sendNotification("Flight Reminder", `Flight in ${timeRemaining}`);
     }
 
-    async function showTodaysFlights(flightDate) {
-        try {
-            const response = await fetch(`/api/todays_flights?date=${flightDate}`);
-            const flights = await response.json();
+    function parseTimeToMinutes(timeStr) {
+        const match = timeStr.match(/(?:(\d+)h)?\s*(\d+)m/);
+        return match ? (parseInt(match[1] || 0, 10) * 60) + parseInt(match[2], 10) : 0;
+    }
 
-            flightsTable.innerHTML = '';
+    function showTodaysFlights(date, nextFlightCode) {
 
-            const nextFlight = flights.find(flight => flight.status === 'Scheduled' || flight.status === 'Estimated');
+        document.querySelector('#current-date-label').textContent += ' ' + date.split(' ')[0].replaceAll('-', ' '); // Mostrar la fecha actual
 
-            flights.forEach((flight) => {
-                const flightRow = document.createElement('tr');
-                flightRow.classList.add('text-center');
+        elements.flightsTable.innerHTML = ''; // Limpiar la tabla antes de actualizar
 
-                let statusTextColorClass = '';
-                let statusBackgroundClass = '';
-                let flightTextStyleClass = 'text-white';
+        // Usamos la fecha proporcionada tal como está
+        const formattedDate = date.split(' ')[0];; // date ya es una cadena en formato YYYY-MM-DD
 
-                if (flight.status === 'Arrived' || flight.status === 'Departed' || flight.status === 'Diverted' || flight.status === 'Delayed') {
-                    statusTextColorClass = 'text-green-500';
-                    flightTextStyleClass = 'line-through text-gray-200';
-                }
+        currentApiData.every(flight => {
+            const flightDate = flight.datetime.split(' ')[0];
 
-                if (flight === nextFlight) {
-                    statusTextColorClass = 'text-yellow-400';
-                    statusBackgroundClass = 'bg-gray-600';
-                }
+            if (flightDate === formattedDate) {
+                const row = document.createElement('tr');
+                row.classList.add('text-center');
 
-                flightRow.innerHTML = `
-                    <td class="px-4 py-2 ${statusBackgroundClass} ${flightTextStyleClass}">${flight.flight_code}</td>
-                    <td class="px-4 py-2 ${statusBackgroundClass} ${flightTextStyleClass}">${flight.expected_time}</td>
-                    <td class="px-4 py-2 ${statusBackgroundClass} ${statusTextColorClass}">${flight.status}</td>
+                // Determinamos si este vuelo es el siguiente
+                let nextFlightStyle = flight.flight === nextFlightCode ? 'text-highlight' : '';
+
+                // Añadimos los datos a la tabla
+                row.innerHTML = `
+                    <td class="px-4 py-2 ${nextFlightStyle}">${flight.flight}</td>
+                    <td class="px-4 py-2 ${nextFlightStyle}">${flight.sched}</td>
+                    <td class="px-4 py-2 ${nextFlightStyle}">${flight.status}</td>
                 `;
-
-                flightsTable.appendChild(flightRow);
-            });
-
-        } catch (error) {
-            console.error("Error fetching today's flights:", error);
-            flightsTable.innerHTML = `<tr><td colspan="3">Error retrieving today's flights: ${error.message}</td></tr>`;
-        }
+                elements.flightsTable.appendChild(row);
+                return true;
+            } else {
+                return false;
+            }
+        });
     }
 
-    // Función para solicitar permisos de notificación
     function requestNotificationPermission() {
-        if (Notification.permission === "granted") {
-            console.log("Permiso ya concedido.");
-        } else if (Notification.permission !== "denied") {
-            Notification.requestPermission().then((permission) => {
-                if (permission === "granted") {
-                    console.log("Permiso concedido.");
-                    location.reload();
-                } else {
-                    console.log("Permiso denegado.");
-                }
-            });
-        }
+        if (Notification.permission === "granted") return;
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                updateBellState();
+            }
+        });
     }
 
-    // Función para enviar la notificación
     function sendNotification(title, body) {
         if (Notification.permission === "granted") {
-            new Notification(title, {
-                body: body,
-                icon: "icono.png", // Ruta a un icono (opcional)
-            });
+            new Notification(title, { body, icon: "icono.png" });
         }
     }
-
-    // Llamada inicial
-    applyTranslations(currentLang);  // Aplicar traducción en base al idioma
-    updateData();
-
-    // Actualizar cada minuto
-    setInterval(updateData, 60000); // Refresh remaining time
 });

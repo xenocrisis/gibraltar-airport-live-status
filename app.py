@@ -1,6 +1,7 @@
-import os
+from datetime import datetime, timedelta
+import json
 from flask import Flask, jsonify, render_template, request
-from datetime import datetime
+import os
 import requests
 from bs4 import BeautifulSoup
 
@@ -9,19 +10,15 @@ URL = "https://www.gibraltarairport.gi/airlines-and-destinations/live-flight-inf
 
 # Función para escribir en el archivo de logs
 def log_message(message):
-    # Obtener la dirección IP y el User-Agent
     ip_address = request.remote_addr
     user_agent = request.headers.get('User-Agent')
 
-    # Crear la carpeta LOGS si no existe
     if not os.path.exists('LOGS'):
         os.makedirs('LOGS')
 
-    # Obtener la fecha actual
     today_date = datetime.now().strftime('%Y-%m-%d')
     log_filename = f"LOGS/{today_date}.txt"
 
-    # Escribir el mensaje en el archivo de logs con IP y User-Agent
     with open(log_filename, 'a') as log_file:
         log_file.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - IP: {ip_address} - User-Agent: {user_agent} - {message}\n")
 
@@ -56,31 +53,32 @@ def parse_flight_data(soup):
                 'sched': cols[2].text.strip(),
                 'status': cols[3].text.strip(),
                 'expected': cols[4].text.strip(),
-                'datetime': datetime_obj
+                'datetime': datetime_obj.strftime('%Y-%m-%d %H:%M:%S') if datetime_obj else None
             })
 
-    return sorted(flights, key=lambda f: f['datetime'] or datetime.max)
+    return sorted(flights, key=lambda f: f['datetime'] or "9999-12-31 23:59:59")
 
 def get_next_flight(flights, current_time):
     for flight in flights:
-        if flight['status'] not in ["Arrived", "Departed"] and flight['datetime'] and flight['datetime'] > current_time:
-            return flight
+        if flight['status'] not in ["Arrived", "Departed"] and flight['datetime']:
+            flight_datetime = datetime.strptime(flight['datetime'], '%Y-%m-%d %H:%M:%S')
+            if flight_datetime > current_time:
+                return flight
     return {"message": "No upcoming flights available."}
 
 def calculate_time_remaining(next_flight, current_time):
     if not next_flight.get('datetime'):
         return next_flight
 
-    programmed_time = next_flight['datetime']
+    programmed_time = datetime.strptime(next_flight['datetime'], '%Y-%m-%d %H:%M:%S')
     expected_time_str = next_flight.get('expected')
     next_flight_time = programmed_time
 
     if expected_time_str:
         try:
-            expected_time = expected_time_str.split(':', 2)
             expected_time = datetime(
                 year=current_time.year, month=current_time.month, day=current_time.day,
-                hour=int(expected_time[0]), minute=int(expected_time[1])
+                hour=int(expected_time_str.split(':')[0]), minute=int(expected_time_str.split(':')[1])
             )
             next_flight_time = expected_time
         except (ValueError, IndexError):
@@ -91,21 +89,14 @@ def calculate_time_remaining(next_flight, current_time):
     hours = total_minutes // 60
     minutes = total_minutes % 60
 
-    if hours == 0:
-        time_remaining = f"{int(minutes)}m"
-    else:
-        time_remaining = f"{int(hours)}h {int(minutes)}m"
+    time_remaining = f"{int(hours)}h {int(minutes)}m" if hours > 0 else f"{int(minutes)}m"
 
-    if total_minutes < 0:
-        airport_status = "closed"  # "Probably closed"
-    elif total_minutes <= 3:
-        airport_status = "closing"  # "Closing"
-    elif total_minutes <= 20:
-        airport_status = "closing_soon"  # "Closing soon"
-    else:
-        airport_status = "open"  # "Airport open"
-
-    next_flight['datetime'] = next_flight['datetime'].strftime('%Y-%m-%d %H:%M:%S')
+    airport_status = (
+        "closed" if total_minutes < 0 else
+        "closing" if total_minutes <= 3 else
+        "closing_soon" if total_minutes <= 20 else
+        "open"
+    )
 
     return {
         "current_time": current_time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -114,82 +105,61 @@ def calculate_time_remaining(next_flight, current_time):
         "next_flight": next_flight
     }
 
-# Update handle_flight_request to accept specified date and time
 def handle_flight_request(processor, day_filter=None):
     soup = fetch_data(URL)
     if not soup:
         log_message("Failed to fetch flight information.")
-        return jsonify({"error": "Could not fetch flight information."}), 500
+        return []
 
     flights = parse_flight_data(soup)
     if day_filter:
         flights = [flight for flight in flights if flight['date'] == day_filter]
 
-    # Get current time from request parameter, if provided
-    current_date_str = request.args.get('date', None)  # Allow the user to specify date
-    current_time_str = request.args.get('time', None)  # Allow the user to specify time
-
-    if current_date_str and current_time_str:
-        try:
-            current_datetime_str = f"{current_date_str} {current_time_str}"
-            current_time = datetime.strptime(current_datetime_str, '%Y-%m-%d %H:%M:%S')
-        except ValueError:
-            log_message(f"Invalid date or time format: {current_date_str} {current_time_str}")
-            return jsonify({"error": "Invalid date or time format. Use YYYY-MM-DD for date and HH:MM:SS for time."}), 400
-    else:
-        current_time = datetime.now()
-
+    current_time = datetime.now()
     log_message(f"Flight data processed for {day_filter if day_filter else 'current day'} with current time {current_time}")
-    return jsonify(processor(flights, current_time))
 
-# Update the /api/flights endpoint to handle the day query parameter
+    return processor(flights, current_time)
+
+def checkLastUpdate():
+    try:
+        with open('last_update.txt', 'r') as f:
+            stored_data_last_update = f.readline().strip()
+            return stored_data_last_update and datetime.strptime(stored_data_last_update, '%Y-%m-%d %H:%M:%S') >= datetime.now() - timedelta(minutes=1)
+    except FileNotFoundError:
+        return False
+
 @app.route('/api/flights', methods=['GET'])
 def get_flights_api():
-    day = request.args.get('day', None)  # Day filter for fetching flights
+    day = request.args.get('day', None)
     log_message(f"Fetching flights for day: {day}")
-    return handle_flight_request(lambda flights, _: flights, day_filter=day)
 
-# Update /api/next_flight to accept and handle custom day and time
-@app.route('/api/next_flight', methods=['GET'])
-def get_next_flight_with_time_api():
-    log_message("Fetching next flight with time remaining.")
-    return handle_flight_request(
-        lambda flights, current_time: calculate_time_remaining(
-            get_next_flight(flights, current_time), current_time
-        )
-    )
+    if not checkLastUpdate():
+        flights = handle_flight_request(lambda flights, _: flights, day_filter=day)
+        next_flight = get_next_flight(flights, datetime.now())
+        next_flight_info = calculate_time_remaining(next_flight, datetime.now())
 
-# Update /api/todays_flights to accept and handle custom date
-@app.route('/api/todays_flights', methods=['GET'])
-def get_todays_flights():
-    date_param = request.args.get('date', default=datetime.now().strftime('%Y-%m-%d'))
-    try:
-        requested_date = datetime.strptime(date_param, '%Y-%m-%d').strftime('%A %d %B %Y')
-    except ValueError:
-        log_message(f"Invalid date format requested: {date_param}")
-        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
+        flights.append({"next_flight": next_flight_info})
 
-    log_message(f"Fetching today's flights for date {requested_date}")
-    soup = fetch_data(URL)
-    if not soup:
-        log_message("Failed to fetch flight information.")
-        return jsonify({"error": "Could not fetch flight information."}), 500
+        with open('last_update.txt', 'w') as f:
+            f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
-    flights = parse_flight_data(soup)
-    requested_flights = [flight for flight in flights if flight['date'] == requested_date]
+        with open('flights_response.json', 'w') as json_file:
+            json.dump(flights, json_file)
+    else:
+        with open('flights_response.json', 'r') as json_file:
+            flights = json.load(json_file)
 
-    result = [
-        {
-            'flight_code': flight['flight'],
-            'expected_time': flight['expected'] if flight['expected'] else flight['sched'],
-            'status': flight['status']
-        }
-        for flight in requested_flights
-    ]
-    log_message(f"Fetched {len(requested_flights)} flights for date {requested_date}")
-    return jsonify(result)
+    return jsonify(flights)
 
 @app.route('/')
 def index():
     log_message("Rendering index page.")
     return render_template('index.html')
+
+@app.route('/information')
+def information():
+    log_message("Rendering information page.")
+    return render_template('information.html')
+
+if __name__ == '__main__':
+    app.run(debug=True)
