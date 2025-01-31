@@ -156,8 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showTodaysFlights(date, nextFlightCode) {
-
-        document.querySelector('#current-date-label').textContent += ' ' + date.split(' ')[0].replaceAll('-', ' '); // Mostrar la fecha actual
+        
+        document.getElementById('current-date').textContent = date.split(' ')[0]; // Mostrar la fecha actual
 
         elements.flightsTable.innerHTML = ''; // Limpiar la tabla antes de actualizar
 
